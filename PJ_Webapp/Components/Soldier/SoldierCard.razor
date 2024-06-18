@@ -1,0 +1,124 @@
+@using PJ_Webapp.Models
+@using PJ_Webapp.Models.Enums
+@using PJ_Webapp.Data
+@rendermode InteractiveServer
+@inject PanelManager pm
+@inject DBServices db
+
+<div class="border container w-75 bg-body-tertiary bg-opacity-75 mb-3 row">
+    <div class="col-xxl-2 mt-3">
+        <h5>@soldier.name 
+            @if (@soldier.availableSkillPoints > 0)
+            {
+                <span class="ms-1 ps-1 pt-1 pb-1 badge bg-danger rounded-pill me-2">+ @soldier.availableSkillPoints</span>
+            }
+        </h5> 
+        <h6 class="text-secondary mt-0">Level @soldier.level @soldier.soldierClass.ToCustomString() 
+            @if (soldier.roleAvailableForAssignment)
+            {
+                <span class="badge bg-danger ms-1 ps-1 pe-1">New!</span>
+            }</h6>
+    </div>
+    <div class=" col-xxl-1 border-start border-end mt-lg-3">
+        <div class="d-flex flex-row mt-1"><i class="bi bi-bandaid pe-1"></i> @soldier.currentHealth / @soldier.maxHealth </div>
+        <div class="d-flex flex-row"><i class="bi bi-emoji-angry pe-1"></i> @soldier.mental / 5</div>
+        <div class="@soldier.healthStatus.ToBadge()">@soldier.healthStatus.ToCustomString()</div>
+    </div>
+    <div class="col-xxl border-start">
+        <div class="d-flex flex-row">
+            <div class="col-xxl  border-end align-items-center">
+                <div class="mt-lg-4">
+                    <i class="bi bi-crosshair"></i> @soldier.aim Aim
+                    <i class="bi bi-bricks"></i> @soldier.toughness Toughness
+                    <i class="bi bi-feather"></i> @soldier.agility Agility
+                    <i class="bi bi-fire"></i> @soldier.will Will
+                    <i class="bi bi-cloud-lightning"></i> @soldier.power Power
+                    @if (soldier.availableTalentPoints > 0)
+                    {
+                        <div class="badge bg-danger">Point Available!</div>
+                    }
+                </div>
+
+            </div>
+            <div class="col d-flex flex-row ms-2 mb-1">
+                @if (db.GetResourceByType(ResourceType.T1_MANA).amount > soldier.GetLevelUpCost() && !soldier.roleAvailableForAssignment)
+                {
+                    <button @onclick="LevelUp" class="btn btn-secondary me-2">Level Up</button>
+                }
+                @if (soldier.roleAvailableForAssignment)
+                {
+                    <button @onclick="OpenRoleAssign" class="btn btn-secondary me-2">Assign Role</button>
+                }
+                @if (soldier.availableSkillPoints > 0)
+                {
+                    <button @onclick="OpenSkillPointSpend" class="btn btn-secondary me-2">Spend Skill Points</button>
+                }
+                @if (soldier.availableTalentPoints > 0)
+                {
+                    <button @onclick="OpenAttributeSpend" class="btn btn-secondary">Increase Attribute</button>
+
+                }
+            </div>
+        </div>
+        <div class="d-flex flex-row mb-2">
+            @foreach (Skill skill in soldier.skills)
+            {
+                if (skill.name.GetCategory() == "Field Skills")
+                {
+                    <div class="badge bg-primary mt-1 me-2">
+                        @skill.name.ToCustomString() - @skill.level
+                    </div>
+                }
+            }
+        </div>
+        <div class="d-flex flex-row mb-2">
+            @foreach (Skill skill in soldier.skills)
+            {
+                if (skill.name.GetCategory() == "Artisan Skills")
+                {
+                    <div class="badge bg-primary me-3">
+                        <span>@skill.name.ToCustomString() - @skill.level</span>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+
+@code {
+    [Parameter] public Soldier soldier { get; set; }
+
+    protected override void OnInitialized()
+    {
+        pm.OnChange += StateHasChanged;
+    }
+
+    private void OpenRoleAssign()
+    {
+        pm.OpenPanel(PanelManager.PanelType.ROLE_ASSIGN_PANEL,soldier);
+    }
+
+    private void OpenSkillPointSpend()
+    {
+        pm.OpenPanel(PanelManager.PanelType.SKILL_POINT_SPEND_PANEL,soldier);
+    }
+
+    private void OpenAttributeSpend()
+    {
+        pm.OpenPanel(PanelManager.PanelType.ATTRIBUTE_SPEND_PANEL,soldier);
+    }
+
+    private void LevelUp()
+    {
+        Resource manaStones = db.GetResourceByType(ResourceType.T1_MANA);
+        if (soldier.GetLevelUpCost() > manaStones.amount)
+        {
+            return;
+        }
+        manaStones.amount -= soldier.GetLevelUpCost();
+        soldier.LevelUp();
+        db.SaveChanges();
+        pm.UiUpdated();
+    }
+}

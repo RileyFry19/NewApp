@@ -1,0 +1,13 @@
+.centered-image {
+    /* Center the image */
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+
+    /* Make it semi-transparent */
+    opacity: 0.2;
+
+    /* Ensure it's behind all other elements */
+    z-index: -1;
+}

@@ -1,0 +1,147 @@
+@using PJ_Webapp.Models
+@using PJ_Webapp.Data
+@inject DBServices db
+@inject UserService session
+
+
+@if (session.LoggedInUser == null)
+{
+        <span>Username: </span><input type="text" @bind="usernameLogin"/>
+        <span>Password: </span><input type="password" @bind="passwordLogin"/>
+        <button @onclick="Login">Log in!</button>
+        <button @onclick="() => {createUserPanel = true;}">Create new user</button>
+    
+}
+else
+{
+    <button @onclick="() => {session.LoggedInUser = null;}">Log out!</button>
+}
+
+@if (createUserPanel)
+{
+    <div class="info-panel" id="create-user-panel">
+        <button class="exit-button"@onclick="() => {createUserPanel = false;}">X</button>
+        <span>Username: </span><input type="text" @bind="usernameCreate"/>
+        <br/>
+        <span>Password: </span><input type="password" @bind="passwordCreate"/>
+        <button @onclick="CreateUser">Create User</button>
+    </div>
+}
+
+@if (dialogueBoxOpen) 
+{
+    <div class="popup" id="new-resource-menu-result">
+        <p>@dialogueText</p>
+        <button @onclick="() => {dialogueBoxOpen = false; }">Close</button>
+    </div>
+    
+}
+
+@code
+{
+    // User Login
+    string? usernameLogin;
+    string? passwordLogin;
+    
+    // User Creation
+    string? usernameCreate;
+    string? passwordCreate;
+
+    // UI 
+    bool dialogueBoxOpen = false;
+    string dialogueText;
+    bool createUserPanel = false;
+
+    private void Login()
+    {
+        User? userAttemptedLogin = db.GetUserByUsername(usernameLogin);
+        if (userAttemptedLogin == null)
+        {
+            DialogueBox("No user found with that username!");
+            return;
+        }
+
+        if (userAttemptedLogin.IsCorrectPassword(passwordLogin))
+        {
+            session.LoggedInUser = userAttemptedLogin;
+            DialogueBox("Successful login!");
+            session.UserChanged();
+            StateHasChanged();
+        }
+        else
+        {
+            DialogueBox("Wrong password!");
+        }
+        
+    }
+    
+    private void CreateUser()
+    {
+        if (ValidateUsername(usernameCreate) & ValidatePassword(passwordCreate))
+        {
+            User user = new User(usernameCreate, passwordCreate);
+            db.SaveData(user);
+            DialogueBox("User Created!");
+        }
+   
+    }
+
+    private bool ValidateUsername(string? username)
+    {
+        if (username == null)
+        {
+            DialogueBox("Username cannot be empty!");
+            return false;
+        }
+        if (username.Length < 1)
+        {
+            DialogueBox("Username too short!");
+            
+            return false;
+        }
+
+        if (username.Length > 20)
+        {
+            DialogueBox("Username too long!");
+            
+            return false;
+        }
+
+        if (db.GetUserByUsername(username) != null)
+        {
+            DialogueBox("User already exists! Try logging in instead!");
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool ValidatePassword(string? password)
+    {
+        bool validPassword = true;
+        if (password == null)
+        {
+            DialogueBox("Password cannot be empty!");
+            return false;
+        }
+        if (password.Length < 5)
+        {
+            DialogueBox("Password too short!");
+            validPassword = false;
+        }
+
+        if (password.Length > 15)
+        {
+            DialogueBox("Password too long!");
+            validPassword = false;
+        }
+
+        return validPassword;
+    }
+    
+    private void DialogueBox(string message)
+    {
+        this.dialogueText = message;
+        dialogueBoxOpen = true;
+    }
+}

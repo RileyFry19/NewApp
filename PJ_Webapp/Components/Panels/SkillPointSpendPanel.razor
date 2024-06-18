@@ -1,0 +1,118 @@
+@using PJ_Webapp.Data
+@using PJ_Webapp.Models
+@using PJ_Webapp.Models.Enums
+@inject DBServices db
+@inject PanelManager pm
+@rendermode InteractiveServer
+<div class="container border bg-dark w-50 panel-floating">
+    <div class="container mt-2 d-flex justify-content-between border-bottom">
+        <h3>@soldier.name </h3>
+        <span>Available Skill Points
+            <div class="badge bg-success">@soldier.availableSkillPoints</div></span>
+        <button @onclick="() => {pm.ClosePanel();}" class="btn-close"></button>
+    </div>
+    <div>
+        <div class="mt-2">
+            @foreach (Skill skill in soldier.skills)
+            {
+                <div class="d-flex flex-row">
+                    <div class="col-5 d-flex justify-content-start pt-1">
+                        <span class="align-content-center me-2 badge bg-secondary">@skill.level</span> <span>@skill.name.ToCustomString()</span> 
+                    </div>
+                    
+                    <div class="col-1 align-self-end">
+                        @if (CanUpgrade(skill))
+                        {
+                            <button @onclick="() => {UpgradeSkill(skill);}" class=" btn btn-success p-0">+ (@skill.GetUpgradeCost())</button>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+        
+        <div class="d-flex justify-content-between mt-2">
+            @if (soldier.availableSkillPoints > 0)
+            {
+                <div class="row mb-3 ms-1">
+                    <button @onclick="() => { AddNewSkill(selectedSkill); }" class="btn btn-success">Add New Skill<span class="badge bg-secondary">(1)</span></button>
+                    <select @bind="selectedSkill" class="form-select">
+                        @code{ string lastCategory = null; }
+                        @foreach (SoldierSkill skill in Enum.GetValues(typeof(SoldierSkill)))
+                        {
+
+                            //Populate header when the category changes
+                            if (lastCategory == null)
+                            {
+                                lastCategory = skill.GetCategory();
+                            }
+
+                            if (skill.GetCategory() != lastCategory)
+                            {
+                                lastCategory = skill.GetCategory();
+                                <option disabled>-- @skill.GetCategory() --</option>
+                            }
+                            //Populate all skill values we dont have yet
+                            if (SoldierOwnsSkill(skill)) continue;
+                            <option value="@skill">@skill.ToCustomString()</option>
+                        }
+                    </select>
+                    
+                </div>
+            }
+            <button @onclick="pm.ClosePanel" class="btn btn-secondary mb-3">Close</button>
+        </div>
+        
+    </div>
+    
+</div>
+
+
+@code {
+    [Parameter] public Models.Soldier soldier { get; set; }
+   
+    private SoldierSkill selectedSkill;
+    private const int NEW_SKILL_COST = 1;
+    
+    
+    private void UpgradeSkill(Skill skill)
+    {
+        if (!CanUpgrade(skill)) return;
+        
+        soldier.availableSkillPoints -= skill.GetUpgradeCost();
+        skill.level += 1;
+        
+        db.SaveChanges();
+        StateHasChanged();
+    }
+
+    private bool CanUpgrade(Skill skill)
+    {
+        return soldier.availableSkillPoints >= skill.GetUpgradeCost();
+    }
+
+    private void AddNewSkill(SoldierSkill skill)
+    {
+        if (SoldierOwnsSkill(skill)) return;
+        soldier.InitializeSkill(skill);
+        soldier.availableSkillPoints -= NEW_SKILL_COST;
+        db.SaveChanges();
+        
+        StateHasChanged();
+    }
+
+    private bool SoldierOwnsSkill(SoldierSkill skill)
+    {
+        bool owned = false;
+
+        foreach (Skill s in soldier.skills)
+        {
+            if (s.name == skill)
+            {
+                owned = true;
+                break;
+            }
+        }
+        
+        return owned;
+    }
+}

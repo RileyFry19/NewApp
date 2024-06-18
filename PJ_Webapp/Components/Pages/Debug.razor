@@ -1,0 +1,37 @@
+@page "/Debug"
+@using PJ_Webapp.Data
+@using PJ_Webapp.Models
+@using PJ_Webapp.Models.Enums
+@using PJ_Webapp.Components.Soldier
+@using PJ_Webapp.Components.Panels
+@inject UserService session
+@inject DBServices db
+
+@if (session.LoggedInUser == null)
+{
+    session.LoggedInUser = new User("dinkledorf", "1");
+    
+    session.LoggedInUser.soldiers.Add(new Soldier("Dinkle Dorfington",SoldierRace.WHITE,Loyalty.NATIONALIST));
+    session.LoggedInUser.soldiers[0].soldierClass = SoldierClass.HEAVY;
+    session.LoggedInUser.soldiers[0].healthStatus = SoldierHealthStatus.GUT_WOUND;
+    session.LoggedInUser.soldiers[0].availableSkillPoints = 5;
+    session.LoggedInUser.soldiers[0].skills.Add(new Skill(SoldierSkill.SNEAK));
+    session.LoggedInUser.soldiers[0].skills.Add(new Skill(SoldierSkill.FIX));
+    session.LoggedInUser.soldiers[0].skills.Add(new Skill(SoldierSkill.DIMENSIONAL_MANIPULATION));
+    session.LoggedInUser.soldiers[0].skills.Add(new Skill(SoldierSkill.MINE));
+    session.LoggedInUser.soldiers[0].availableTalentPoints += 1;
+    session.LoggedInUser.soldiers[0].roleAvailableForAssignment = true;
+    
+    Soldier healthyGuy = new Soldier("Healthy Guy",SoldierRace.ASIAN,Loyalty.NA);
+    session.LoggedInUser.soldiers.Add(healthyGuy);
+    
+    <Dashboard></Dashboard>
+}
+@code{
+    //Foreach soldier print a card, lay them out nice and then have the two panels globally that the buttons
+    // on the cards call to open and close?
+}
+
+@code {
+    Soldier currentSoldier;
+}

@@ -1,0 +1,200 @@
+@using PJ_Webapp.Models.Enums
+@using PJ_Webapp.Data
+@using PJ_Webapp.Models
+@inject DBServices db
+
+<div id="soldier-form">
+    <h3>Soldier Edit</h3>
+    <EditForm Model="@selectedSoldier">
+        <DataAnnotationsValidator/>
+        <ValidationSummary/>
+        <div>
+
+        </div>
+        <div>
+            <label for="name">Name:</label>
+            <InputText id="name" @bind-Value="@selectedSoldier.name"/>
+            <br/>
+            <label for="soldierClass">Soldier Class:</label>
+            <InputSelect id="soldierClass" @bind-Value="@selectedSoldier.soldierClass">
+                <option value="">--- select ---</option>
+                @foreach (var soldierClass in Enum.GetValues<SoldierClass>())
+                {
+                    <option value="@soldierClass">@soldierClass</option>
+                }
+            </InputSelect>
+            <br/>
+        </div>
+
+        <label for="level">Level:</label>
+        <InputNumber id="level" @bind-Value="@selectedSoldier.level"/>
+        <br/>
+        <label for="currentHealth">Current Health:</label>
+        <InputNumber id="currentHealth" @bind-Value="@selectedSoldier.currentHealth"/>
+        <br/>
+        <label for="maxHealth">Max Health:</label>
+        <InputNumber id="maxHealth" @bind-Value="@selectedSoldier.maxHealth"/>
+        <br/>
+        <label for="mental">Mental:</label>
+        <InputNumber id="mental" @bind-Value="@selectedSoldier.mental"/>
+        <br/>
+        <label for="soldierRace">Soldier Race:</label>
+        <InputSelect id="soldierRace" @bind-Value="@selectedSoldier.soldierRace">
+            <option value="">--- select ---</option>
+            @foreach (var soldierRace in Enum.GetValues<SoldierRace>())
+            {
+                <option value="@soldierRace">@soldierRace</option>
+            }
+        </InputSelect>
+        <br/>
+
+        <label for="availableSkillPoints">Available Skill Points:</label>
+        <InputNumber id="availableSkillPoints" @bind-Value="@selectedSoldier.availableSkillPoints"/>
+        <br/>
+        <label for="loyalty">Loyalty:</label>
+        <InputSelect id="loyalty" @bind-Value="@selectedSoldier.loyalty">
+            <option value="">--- select ---</option>
+            @foreach (var loyalty in Enum.GetValues<Loyalty>())
+            {
+                <option value="@loyalty">@loyalty</option>
+            }
+        </InputSelect>
+        <label for="healthStatus">Health Status:</label>
+        <InputSelect id="healthStatus" @bind-Value="@selectedSoldier.healthStatus">
+            <option value="">--- select ---</option>
+            @foreach (var healthStatus in Enum.GetValues<SoldierHealthStatus>())
+            {
+                <option value="@healthStatus">@healthStatus</option>
+            }
+        </InputSelect>
+        <br/>
+        <label for="roleAvailable">Role Available for Assignment:</label>
+        <InputCheckbox id="roleAvailable" @bind-Value="@selectedSoldier.roleAvailableForAssignment"/>
+        <label for="characterSheetLink">Character Sheet Link:</label>
+        <InputText id="characterSheetLink" @bind-Value="@selectedSoldier.characterSheetLink"/>
+        <br/>
+        <button @onclick="() => { if (selectedSoldier != null) OpenEditSkillMenu(selectedSoldier); }">Edit Skills</button>
+        <button @onclick="SaveSoldier" type="submit">Save</button>
+        <button @onclick="OpenReassignUser">Reassign to user</button>
+    </EditForm>
+</div>
+       @if (skillEditMenu)
+       {
+           
+           <div id="skill-edit-form">
+               <h3>Skills Edit</h3>
+               <p>Skill has to be swapped onto first (sorry :( )</p>
+               <span>Existing</span>
+               <select @bind="selectedSkillGuid">
+                   @foreach (Skill skill in selectedSoldier.skills)
+                   {
+                       <option value="@skill.skillId">@skill.name.ToCustomString() @skill.level</option>
+                   }
+               </select>
+               <span>Action (Value can be + or -, int only)</span>
+               <select @bind="skillUpdateMethod">
+                   <option value="mod">Modify</option>
+                   <option value="del">Delete</option>
+               </select>
+               <input type="number" @bind="modValue"/>
+               <button @onclick="() => {UpdateSkill(selectedSkillGuid,skillUpdateMethod); }">Submit</button>
+               <br/>
+
+               <span>New</span>
+               <select @bind="newSkill">
+                   @foreach (SoldierSkill skill in Enum.GetValues<SoldierSkill>())
+                   {
+                       <option value="@skill">@skill.ToCustomString()</option>
+                   }
+               </select>
+               <button @onclick="() => { AddSkill(newSkill);}">Add</button>
+           </div>
+       }
+
+       @if (reassignUserMenu)
+       {
+           <div id="reassign-user-form">
+               <span>New User</span>
+               <select @bind="selectedUserId">
+                   @foreach (User user in db.GetUsers())
+                   {
+                       <option value="@user.userID">@user.username</option>
+                   }
+               </select>
+               <button @onclick="ReassignUser">Submit</button>
+           </div>
+       }
+       
+       @code {
+           //Globals
+           [Parameter] public Guid soldierId { get; set; }
+           private Models.Soldier? selectedSoldier;
+           
+           //Skill Menu
+           private Guid selectedSkillGuid;
+           private SoldierSkill newSkill;
+           private string skillUpdateMethod = "mod";
+           bool skillEditMenu;
+           private int modValue = 0;
+           
+           //Reassign User
+           bool reassignUserMenu;
+           private Guid selectedUserId;
+           
+           
+           protected override void OnParametersSet()
+           {
+               selectedSoldier = db.GetSoldierById(soldierId);
+           }
+       
+           private void SaveSoldier()
+           {
+               db.SaveChanges();
+           }
+           
+            private void OpenEditSkillMenu(Models.Soldier soldier)
+            {
+                if(soldier is null) throw new ArgumentNullException(nameof(soldier));
+                skillEditMenu = !skillEditMenu;
+                reassignUserMenu = false;
+            }
+
+           private void UpdateSkill(Guid selectedSkill,string action)
+           {
+               Skill? skill = db.GetSkillById(selectedSkill);
+               if (skill == null) { return; }
+               
+               if (action == "mod")
+               {
+                   skill.level += modValue;
+                   db.SaveChanges();
+               }
+               if (action == "del")
+               {
+                   db.Delete(skill);
+               }
+               
+               StateHasChanged();
+           }
+
+           private void AddSkill(SoldierSkill skill)
+           {
+               selectedSoldier.InitializeSkill(skill);
+               db.SaveChanges();
+               StateHasChanged();
+           }
+           private void OpenReassignUser()
+           {
+               skillEditMenu = false;
+               reassignUserMenu = !reassignUserMenu;
+           }
+
+           private void ReassignUser()
+           {
+               if (selectedSoldier == null) return;
+               if (selectedUserId == null) return;
+               selectedSoldier.playerId = selectedUserId;
+               db.SaveChanges();
+           }
+           
+       }

@@ -1,0 +1,44 @@
+@page "/RosterManagement"
+@using PJ_Webapp.Data
+@using PJ_Webapp.Models
+@using PJ_Webapp.Models.Enums
+@using PJ_Webapp.Components.Soldier
+@using PJ_Webapp.Components.Panels
+@inject DBServices db
+@inject UserService session
+@inject PanelManager pm
+@inject NavigationManager nav
+@rendermode InteractiveServer
+
+
+<link rel="stylesheet" href="site.css"/>
+@if (session.LoggedInUser != null)
+{
+    @foreach (Soldier soldier in session.LoggedInUser.soldiers)
+    {
+        <SoldierCard soldier="soldier"></SoldierCard>
+    }
+}
+
+@if(pm.IsPanelOpen(PanelManager.PanelType.ROLE_ASSIGN_PANEL))
+{
+    <RoleAssignPanel soldier="pm.currentSoldier"></RoleAssignPanel>
+}
+
+@if (pm.IsPanelOpen(PanelManager.PanelType.SKILL_POINT_SPEND_PANEL))
+{
+    <SkillPointSpendPanel soldier="pm.currentSoldier"></SkillPointSpendPanel>
+}
+@if (pm.IsPanelOpen(PanelManager.PanelType.ATTRIBUTE_SPEND_PANEL))
+{
+    <AttributeSpendPanel soldier="pm.currentSoldier"></AttributeSpendPanel>
+}
+@code {
+    // Dashboard goes here
+
+    protected override void OnInitialized()
+    {
+        pm.OnChange += StateHasChanged;
+    }
+
+}

@@ -1,0 +1,61 @@
+@page "/Dashboard"
+@using PJ_Webapp.Models
+@rendermode InteractiveServer
+@using PJ_Webapp.Data
+@using MySqlX.XDevAPI
+@using PJ_Webapp.Models.Enums
+@inject UserService session
+@inject DBServices db
+@inject NavigationManager nav
+@if (session.LoggedInUser != null)
+{
+    <div class="container-fluid row">
+    <div class="col-6 bg-opacity-25 bg-dark border w-50 h-25 container">
+        <div>
+            <h2>Platoon Health Status Dashboard</h2>
+            <h4 class="rounded-3 ps-2 bg-success w-50 mb-3">Healthy Soldiers</h4>
+
+            <ul class="list-group">
+                @foreach (Soldier soldier in session.LoggedInUser.soldiers)
+                {
+                    if (soldier.healthStatus == SoldierHealthStatus.HEALTHY)
+                    {
+                        <li class="list-group-item d-flex flex-row">
+                            <div class="col-6">
+                                <h5 class="me-1">@soldier.name<div class="ms-1 badge bg-success">@soldier.healthStatus.ToCustomString()</div></h5>
+                                <h6 class="text-secondary">Level @soldier.level @soldier.soldierClass.ToCustomString()</h6>
+                            </div>
+                            <div class="col-6">
+                                <h5>Monthly Assignment</h5>
+                                <h6 class="text-black bg-info rounded-3 ps-4">To be implemented</h6>
+                            </div>
+                        </li>
+                    }
+                }
+            </ul>
+            <h4 class="rounded-3 ps-2 bg-warning w-50 mt-5">Wounded Soldiers</h4>
+            <ul class="list-group">
+                @foreach (Soldier soldier in session.LoggedInUser.soldiers)
+                {
+                    @if (soldier.healthStatus != SoldierHealthStatus.HEALTHY && soldier.healthStatus != SoldierHealthStatus.DEAD && soldier.healthStatus != SoldierHealthStatus.LOST)
+                    {
+                        <li class="list-group-item d-flex flex-row">
+                            <div class="col-6">
+                                <h5 class="me-1">@soldier.name<div class="ms-1 badge bg-warning">@soldier.healthStatus.ToCustomString()</div></h5>
+                                <h6 class="text-secondary">Level @soldier.level @soldier.soldierClass.ToCustomString()</h6>
+                            </div>
+                            <div class="col-6">
+                                <h5>Monthly Assignment</h5>
+                                <h6 class="text-black bg-info rounded-3 ps-4">To be implemented</h6>
+                            </div>
+                        </li>
+                    }
+                }
+            </ul>
+        </div>
+    </div>
+    <div class="col-6">
+    </div>
+</div>
+}
+

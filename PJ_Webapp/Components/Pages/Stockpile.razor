@@ -1,0 +1,139 @@
+@page "/Stockpile"
+@inject DBServices db
+@inject UserService session
+@inject NavigationManager nav
+@using PJ_Webapp.Models
+@using PJ_Webapp.Data
+@using PJ_Webapp.Models.Enums
+@rendermode InteractiveServer
+<link rel="stylesheet" href="site.css"/>
+<h3>The Stockpile</h3>
+
+@if (db.GetResources().Count < STARTING_RESOURCES)
+{
+    InitializeResources();
+}
+<div class="container-fluid d-flex flex-row">
+    <div class="col-9">
+        <h2 class="">Resources</h2>
+        <div class="container-fluid row d-flex flex-row">
+            @foreach (ResourceCategory category in Enum.GetValues(typeof(ResourceCategory)))
+            {
+                <div class="col-3 bg-opacity-25 @category.GetCategoryColor() me-3 mb-3 rounded-2 border border-info">
+                    <h4 class="mt-3 text-center bg-dark rounded-5 bg-opacity-25">@category.ToCustomString()</h4>
+                    <ul class="list-group mb-3">
+                        @foreach (Resource resource in db.GetResources())
+                        {
+                            if (resource.category == category)
+                            {
+                                <li class="list-group-item list-group-item bg-opacity-75 bg-dark">@resource.name : @resource.amount</li>
+                            }
+                        }
+                    </ul>
+                </div>
+
+            }
+        </div>
+    </div>
+    
+    <div class="col bg-success-subtle bg-opacity-25 border rounded-2">
+        <div class="p-2">
+            <h2>Equipment</h2>
+            <p class="text-secondary"> To be implemented
+            </p>
+        </div>
+    </div>
+</div>
+
+
+<div class="">
+    
+</div>
+@if (createNewResourceMenuOpen)
+{
+    <div class="info-panel">
+        <button class="exit-button" @onclick="() => {createNewResourceMenuOpen = false;}">X</button>
+        <span>Name: </span> <input type="text" @bind="newResourceName"/>
+        <br/>
+        <span>Amount: </span> <input type="number" @bind="newResourceAmount"/>
+        <br/>
+        <button class="btn-success" @onclick="CreateCustomResource">Create</button>
+        @if (dialogueBoxOpen)
+        {
+            <div class="popup" id="new-resource-menu-result">
+                <p>@dialogueText</p>
+                <button @onclick="() => {dialogueBoxOpen = false; }">Close</button>
+            </div>
+            
+        }
+        </div>
+}
+
+@code {
+    //UI Variables
+    //TODO generalize these into a function, maybe make a UI handler service we can dependency inject?
+    bool createNewResourceMenuOpen = false;
+    bool dialogueBoxOpen = false;
+    string dialogueText;
+    
+    //New resource form binds
+    string newResourceName;
+    int newResourceAmount;
+
+    //Init variables
+    int STARTING_RESOURCES = 23;
+    
+    private void InitializeResources()
+    {
+        foreach (ResourceType resourceType in Enum.GetValues(typeof(ResourceType)))
+        {
+            Resource newResource = new Resource(resourceType, 0);
+            db.SaveData(newResource);
+            db.SaveChanges();
+        }
+        StateHasChanged();
+    }
+    
+    private void CreateCustomResource()
+    {
+        bool formFilled = newResourceName != null && newResourceAmount != null;
+        if (formFilled)
+        {
+            Resource newResource = new Resource(newResourceName, newResourceAmount);
+
+            bool resourceAlreadyExists = false;
+            foreach (Resource resource in db.GetResources())
+            {
+                if (resource.name == newResource.name)
+                {
+                    resourceAlreadyExists = true;
+                }
+                
+            }
+
+            if (resourceAlreadyExists)
+            {
+                DialogueBox("Resource already exists, update the regular way!");
+            }
+            else
+            {
+                db.SaveData(newResource);
+                db.SaveChanges();
+                DialogueBox("Success!");
+                StateHasChanged();
+            }
+            
+        }
+        else
+        {
+            DialogueBox("You must fill out the entire form!");
+        }
+        
+    }
+
+    private void DialogueBox(string message)
+    {
+        this.dialogueText = message;
+        dialogueBoxOpen = true;
+    }
+}

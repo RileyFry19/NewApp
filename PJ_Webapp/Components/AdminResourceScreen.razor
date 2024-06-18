@@ -1,0 +1,79 @@
+@using PJ_Webapp.Data
+@using PJ_Webapp.Models
+@using PJ_Webapp.Models.Enums
+@inject UserService session
+@inject DBServices db
+<link rel="stylesheet" href="site.css">
+
+<span>Type: </span><select @bind="resourceName">
+    
+    @foreach (Resource r in db.GetResources())
+    {
+        <option value="@r.name">@r.name</option>
+    }
+</select>
+<span>Action:</span> <select @bind="action">
+    <option value="add">Add</option>
+    <option value="subtract">Subtract</option>
+    <option value="set">Set</option>
+    <option value="delete">Delete</option>
+</select>
+
+<span>Amount:</span> <input @bind="amount" type="number"/>
+<button @onclick="() => {submitResourceButton();}">Submit</button>
+
+        
+@code {
+    // Form binds
+    string action = "add";
+    string resourceName = "Ironwood";
+    int amount;
+    
+    private void AddResources(string resourceName, int amount)
+    {
+        Resource resource = db.GetResourceByName(resourceName);
+        resource.amount += amount;
+        db.SaveChanges();
+    }
+
+    private void SubtractResources(string resourceName, int amount)
+    {
+        Resource resource = db.GetResourceByName(resourceName);
+        resource.amount -= amount;
+        db.SaveChanges();
+    }
+
+    private void SetResources(string resourceName, int amount)
+    {
+        Resource resource = db.GetResourceByName(resourceName);
+        resource.amount = amount;
+        db.SaveChanges();
+    }
+
+    private void DeleteResource(string resourceName)
+    {
+        Resource resource = db.GetResourceByName(resourceName);
+        db.Delete(resource);
+        db.SaveChanges();
+    }
+
+    private void submitResourceButton()
+    {
+        bool resourceFormFilled = action != null && resourceName != null && amount != null;
+
+        if (resourceFormFilled)
+        {
+            switch (action)
+            {
+                case "add" : AddResources(resourceName,amount);  break;
+                case "subtract" : SubtractResources(resourceName,amount); break;
+                case "set" : SetResources(resourceName,amount); break;
+                case "delete" : DeleteResource(resourceName); break;
+                
+                default: Console.WriteLine("something went wrong AdminManagement.razor");  break;
+               
+            }
+        }
+
+    }
+}

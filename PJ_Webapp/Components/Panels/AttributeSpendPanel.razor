@@ -1,0 +1,78 @@
+@using PJ_Webapp.Models
+@using PJ_Webapp.Data
+@rendermode InteractiveServer
+@inject PanelManager pm
+<div class="border container mt-1 w-50 bg-dark panel-floating">
+    <div class="p-2 border-bottom d-flex justify-content-between">
+        <h3>Attribute Point Allocation</h3>
+        <div class="badge bg-success align-content-center">Available points: @soldier.availableTalentPoints</div>
+        <button class="btn-close" @onclick="() => {pm.ClosePanel();}"></button>
+    </div>
+    <div class="d-flex flex-column" >
+        <div class="d-flex flex-row btn-group mb-3">
+             <button class="@("btn btn-outline-primary" + (selectedAttribute == "aim" ? " active" : ""))" @onclick='() => { selectAtt("aim"); }'>Aim</button>
+                <button class="@("btn btn-outline-primary" + (selectedAttribute == "toughness" ? " active" : ""))"  @onclick='() => { selectAtt("toughness"); }'>Toughness</button>
+                <button class="@("btn btn-outline-primary" + (selectedAttribute == "will" ? " active" : ""))"  @onclick='() => { selectAtt("will"); }'>Will</button>
+                <button class="@("btn btn-outline-primary" + (selectedAttribute == "agility" ? " active" : ""))"  @onclick='() => { selectAtt("agility"); }'>Agility</button>
+                <button class="@("btn btn-outline-primary" + (selectedAttribute == "power" ? " active" : ""))"  @onclick='() => { selectAtt("power"); }'>Power</button>
+        </div>
+        @if (selectedAttribute != null)
+        {
+            <div class="align-self-center btn-group mb-3">
+                <button @onclick="() => {upgradeAttribute(selectedAttribute);}" class="align-self-center btn btn-success">Confirm!</button>
+                <button @onclick="() => {pm.ClosePanel();}" class="align-self-center btn btn-secondary">Close</button>
+            </div>
+        }
+          
+    </div>
+
+</div>
+@code {
+    [Parameter] public Soldier soldier { get; set; }
+    private string? selectedAttribute = null;
+
+    private void selectAtt(string attribute)
+    {
+        selectedAttribute = attribute;
+    }
+
+    private void upgradeAttribute(string attribute)
+    {
+        if (soldier.availableTalentPoints < 1)
+        {
+            return;
+        }
+        switch (attribute)
+        {
+            case "aim":
+            {
+                soldier.aim += 1;
+                break;
+            }
+            case "toughness":
+            {
+                soldier.toughness += 1;
+                break;
+            }
+            case "will" :
+            {
+                soldier.will += 1;
+                break;
+            }
+            case "agility":
+            {
+                soldier.agility += 1;
+                break;
+            }
+            case "power":
+            {
+                soldier.power += 1;
+                break;
+            }
+            
+        }
+        soldier.availableTalentPoints -= 1;
+        pm.UiUpdated();
+        pm.ClosePanel();
+    }
+}

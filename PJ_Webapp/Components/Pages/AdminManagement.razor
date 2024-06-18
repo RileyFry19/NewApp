@@ -1,0 +1,86 @@
+@page "/Admin_Management"
+@using PJ_Webapp.Data
+@using PJ_Webapp.Models
+@using PJ_Webapp.Models.Enums
+@inject UserService session
+@inject DBServices db
+@inject NavigationManager nav
+@using PJ_Webapp.Components.Panels
+@rendermode InteractiveServer
+<link rel="stylesheet" href="site.css">
+
+@if (session.LoggedInUser is { isAdmin: true } || debug)
+{
+    //This screen honestly blows, i need to rework the whole thing at some point
+    <h3>Admin</h3>
+    <button @onclick="() => {resourceScreen = true; }">Resource Management</button>
+    <button @onclick="() => {soldierScreen = true; }">Soldier Management</button>
+    <button @onclick="() => {userScreen = true; }">User Management</button>
+
+
+    if (resourceScreen)
+    {
+        <div id="resourceManagement" class="info-panel">
+            <button class="exit-button" @onclick="() => {resourceScreen = false;}">X</button>
+            <AdminResourceScreen></AdminResourceScreen>
+        </div>
+    }
+
+    if (soldierScreen)
+    {
+        <div id="soldierManagement" class="info-panel">
+            <button class="exit-button" @onclick="() => {soldierScreen = false;}">X</button>
+            
+            <span>User:</span>
+            <select @bind="selectedUserId">
+                @foreach (User user in db.GetUsers())
+                {
+                    <option value="@user.userID">@user.username</option>
+                }
+            </select>
+            
+            
+            @if (selectedUserId.HasValue)
+           {
+               //User Dropdown
+               List<Soldier> soldierList = db.GetUserById(selectedUserId.Value).soldiers;
+               <span>Soldier:</span>
+               <select @bind="selectedSoldierId">
+                   @foreach (Soldier soldier in soldierList)
+                   {
+                       <option value="@soldier.soldierId">@soldier.name</option>
+                   }
+               </select>
+           }
+            
+            @if (selectedSoldierId.HasValue)
+            {
+                <button class="btn btn-primary"@onclick="() => {soldierEditScreen = true;}">Edit</button>
+            }
+            
+            @if (soldierEditScreen && selectedSoldierId.HasValue)
+            {
+                <SoldierEditForm soldierId="selectedSoldierId.Value"></SoldierEditForm>
+            }
+            
+            
+            
+        </div>
+    }
+}
+
+@code {
+    // UI variables
+    bool resourceScreen = false;
+    bool soldierScreen = false;
+    bool userScreen = false;
+    bool soldierEditScreen = false;
+    bool debug = true;
+    Guid? selectedSoldierId;
+    Guid? selectedUserId;
+
+    private void EditSoldier()
+    {
+        soldierEditScreen = true;
+    }
+}

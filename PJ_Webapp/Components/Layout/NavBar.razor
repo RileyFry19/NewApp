@@ -1,0 +1,76 @@
+@using PJ_Webapp.Data
+@inject UserService session
+@inject NavigationManager nav
+@rendermode InteractiveServer
+<nav class="navbar navbar-expand-sm container-fluid bg-body-tertiary">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">
+            <img class="d-inline-block align-text-center" src="images/janus.png" height="30" width="30"/>
+            Project Janus
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav me-auto mb-2 mb-lg0">
+
+                @if (session.LoggedInUser != null)
+                {
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="dashboard" Match="NavLinkMatch.All">
+                            <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+                        </NavLink>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a href="#" class="dropdown-toggle nav-link" role="button" data-bs-toggle="dropdown">Roster</a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <NavLink class="dropdown-item" href="RosterManagement">Active Soldiers</NavLink>
+                            </li>
+                            <li>
+                                <NavLink class="dropdown-item" href="SoldierCreation">Recruit New Soldiers</NavLink>
+                            </li>
+                            
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <NavLink href="Stockpile" class="nav-link">Resources</NavLink>
+                    </li>
+
+                }
+                @if ((session.LoggedInUser != null && session.LoggedInUser.isAdmin) || debug)
+                {
+                    <li class="nav-item">
+                        <NavLink href="Admin_Management" class="nav-link">Admin</NavLink>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+    @if (session.LoggedInUser != null)
+    {
+        <button @onclick="LogOut" class="btn btn-outline-danger w50">Log out</button>
+    }
+    
+</nav>
+
+@code {
+    bool debug = false;
+
+    private void LogOut()
+    {
+        session.LoggedInUser = null;
+        session.UserChanged();
+        StateHasChanged();
+    }
+    protected override void OnInitialized()
+    {
+        session.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        session.OnChange -= StateHasChanged;
+    }
+    
+}

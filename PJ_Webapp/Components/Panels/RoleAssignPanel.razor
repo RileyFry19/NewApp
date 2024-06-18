@@ -1,0 +1,52 @@
+@using PJ_Webapp.Models.Enums
+@using PJ_Webapp.Models
+@using PJ_Webapp.Data
+@using Org.BouncyCastle.Asn1.X509
+@inject DBServices db
+@inject PanelManager pm
+
+@rendermode InteractiveServer
+<div class="container w-50 border bg-dark mt-1 panel-floating">
+    <div class="d-flex justify-content-between">
+        
+        <h3>Class Selection</h3>
+        <button @onclick="() => {pm.ClosePanel();}" class="btn-close"></button>
+    </div>
+    <h5 class="text-secondary">@soldier.name Level @soldier.level @soldier.soldierClass.ToCustomString()</h5>
+    <div class="d-flex flex-column">
+        <div class="btn-group mb-3">
+             @foreach (SoldierClass role in Enum.GetValues(typeof(SoldierClass)))
+                {
+                    if (role == SoldierClass.GRUNT) continue;
+                    var buttonClass = selectedClass == role ? "btn btn-outline-primary active" : "btn btn-outline-primary";
+                    <button class="@buttonClass" @onclick="() => { SelectClass(role); }">@role.ToCustomString()</button>
+                }
+        </div>
+    <div class="mb-3">
+            @if (selectedClass != null)
+            {
+                <button @onclick="AssignClass" class="btn btn-success">Confirm</button>
+            }
+            <button @onclick="() => {pm.ClosePanel();}" class="btn btn-secondary align-self-end">Close</button>
+    </div>
+
+    </div>
+</div>
+@code {
+    [Parameter] public Soldier soldier { get; set; }
+    SoldierClass? selectedClass;
+    private void SelectClass(SoldierClass role)
+    {
+        selectedClass = role;
+    }
+    private void AssignClass()
+    {
+        if (selectedClass != null)
+        {
+            soldier.AssignClass(selectedClass.Value);
+            db.SaveChanges();
+            StateHasChanged();
+            pm.ClosePanel();
+        }
+    }
+}

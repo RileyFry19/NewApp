@@ -1,0 +1,163 @@
+@using PJ_Webapp.Models
+@using PJ_Webapp.Models.Enums
+@using PJ_Webapp.Data
+@inject DBServices db
+
+
+<div class="info-panel" id="selection-screen">
+        <h3>@selectedSoldier.name</h3>
+        @if (selectedSoldier.soldierClass != null)
+        {
+            <h6>@selectedSoldier.soldierClass.ToCustomString()</h6>
+        }
+        <button @onclick="() => {selectedSoldier = null; }" class="exit-button"><b>X</b></button>
+        <div id="selected-vitals">
+            <h5><b>Vitals</b></h5>
+            <div class="stat-container">
+                <button class="adjust-btn" @onclick="() => UpdateMental(selectedSoldier,-1)">-</button>
+                <span>Mental: @selectedSoldier.mental</span>
+                <button class="adjust-btn" @onclick="() => UpdateMental(selectedSoldier,1)">+</button>
+            </div>
+            <div class="stat-container">
+                <button class="adjust-btn" @onclick="() => UpdateHP(selectedSoldier, -1)">-</button>
+                <span>Health: @selectedSoldier.currentHealth</span>
+                <button class="adjust-btn" @onclick="() => UpdateHP(selectedSoldier,1)">+</button>
+            </div>
+            <span>Health Status : @selectedSoldier.healthStatus</span>
+            <span>Level: @selectedSoldier.level</span>
+            <span>Max Health: @selectedSoldier.maxHealth</span>
+        </div>
+        
+        <div id="selected-skills">
+            <h5><b>Skills</b></h5>
+            @if (selectedSoldier.availableSkillPoints > 0)
+            {
+                <span>Available points: @selectedSoldier.availableSkillPoints</span>
+            }
+            @foreach (Skill skill in selectedSoldier.skills)
+            {
+                <div class="stat-container">
+                    <span>@skill.name.ToCustomString() : @skill.level</span>
+                    @if (selectedSoldier.availableSkillPoints >= skill.GetUpgradeCost())
+                    {
+                        <button class="adjust-btn" @onclick="() => UpgradeSkill(selectedSoldier,skill)">+ (@skill.GetUpgradeCost())</button>
+                    }                    
+                </div>
+
+            }
+            
+        </div>
+        
+        <div id="Functions">
+            <h5><b>Functions</b></h5>
+            @if (!selectedSoldier.roleAvailableForAssignment)
+            {
+                <button @onclick="() => {LevelUpSoldier(selectedSoldier);}">Level up</button>
+            }
+            @if (selectedSoldier.roleAvailableForAssignment)
+            {
+                <button @onclick="() => {classSelectionScreenOpen = true; }">Select Class</button>
+            }
+            @if (classSelectionScreenOpen)
+            {
+                <div class="info-panel"id="class-selection-screen">
+                    <button @onclick="() => {classSelectionScreenOpen = false;}" class="exit-button"><b>X</b></button>
+                    <h3>Class Selection</h3>
+                    @foreach (SoldierClass role in Enum.GetValues(typeof(SoldierClass)))
+                    {
+                        if (role != SoldierClass.GRUNT)
+                        {
+                            <button @onclick="() => {AssignClass(selectedSoldier,role);}">@role.ToCustomString()</button>
+                        }
+                    }
+                </div>
+            }
+        </div>
+    </div>
+@code {
+    [Parameter] public Soldier selectedSoldier { get; set; }
+    [Parameter] public EventCallback soldierDeselected { get; set; }
+    [Parameter] public EventCallback soldierUpdated { get; set; }
+
+    bool classSelectionScreenOpen;
+    
+    private void UpgradeSkill(Soldier soldier, Skill skill)
+    {
+        soldier.UpgradeSkill(skill);
+        StateHasChanged();
+        db.SaveChanges();
+    }
+    
+    private void AssignClass(Soldier soldier, SoldierClass role)
+    {
+        soldier.AssignClass(role);
+        StateHasChanged();
+        classSelectionScreenOpen = false;
+        db.SaveChanges();
+    }
+
+    private void UpdateHealthStatus(Soldier soldier, SoldierHealthStatus healthStatus)
+    {
+        soldier.healthStatus = healthStatus;
+        StateHasChanged();
+        db.SaveChanges();
+    } // Might be an admin setting
+    
+    private bool LevelUpSoldier(Soldier soldier)
+    {
+        Resource mana_stones = db.GetResourceByType(ResourceType.T1_MANA); // TODO just t1 mana stones for now
+        bool canLevel = soldier.GetLevelUpCost() <= mana_stones.amount ;
+        
+        if (canLevel)
+        {
+            mana_stones.amount -= soldier.GetLevelUpCost();
+            soldier.LevelUp();
+        }
+
+        //For displaying the succesfull/unsuccesfull textbox
+        db.SaveChanges();
+        StateHasChanged();
+        return canLevel;
+    }
+    
+    private void UpdateHP(Soldier soldier, int changeAmount)
+    {
+        int newAmount = soldier.currentHealth + changeAmount;
+        Console.WriteLine((newAmount));
+        soldier.currentHealth = Math.Clamp(newAmount, 0, soldier.maxHealth);
+        db.SaveChanges();
+        StateHasChanged();
+    }
+    
+    private void UpdateMental(Soldier soldier, int changeAmount)
+    {
+        int newAmount = soldier.mental + changeAmount;
+        soldier.mental = Math.Clamp(newAmount, -1, 5);
+        db.SaveChanges();
+        StateHasChanged();
+
+    }
+    
+    private void SelectSoldier(Soldier soldier)
+    {
+        if (selectedSoldier != null)
+        {
+            selectedSoldier = null;
+        }
+        else
+        {
+            selectedSoldier = soldier;
+        }
+    }
+    
+    private void DeleteSoldier(Soldier soldier)
+    {
+        db.DeleteSoldier(soldier);
+        StateHasChanged();
+
+        if (selectedSoldier == soldier)
+        {
+            selectedSoldier = null;
+        }
+    }
+}

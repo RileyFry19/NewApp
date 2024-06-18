@@ -1,0 +1,163 @@
+﻿@page "/"
+@rendermode InteractiveServer
+<PageTitle>Login</PageTitle>
+@using PJ_Webapp.Models
+@using PJ_Webapp.Data
+@using Microsoft.IdentityModel.Tokens
+@using System.Runtime.CompilerServices
+@inject DBServices db
+@inject UserService session
+@inject NavigationManager nav
+<form class="container-sm">
+    @if (session.LoggedInUser == null)
+    {
+        
+        <div style="flex-direction: column" class="d-flex">
+            <h1 class="align-self-center">Project Janus Access Credentials</h1>
+            <div class="border pt-4 p-5 w-50 align-self-center" style="max-width: 500px">
+                <div class="mb-3">
+                    <label for="username" class="form-label">Username:</label>
+                    <input @bind="usernameLogin" type="text" class="form-control" id="username"/>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password:</label>
+                    <input @bind="passwordLogin" class="form-control" type="password" id="password">
+                </div>
+                <button @onclick="Login" type="button" class="btn btn-primary">Log in</button>
+                <button @onclick="CreateUser" type="button" class="btn btn-success  float-end">Create Account</button>
+            </div>
+        </div>  
+    }
+
+    @if (!string.IsNullOrWhiteSpace(operationResultText))
+        {
+            @if (operationSuccessfull)
+            {
+                <div class="alert alert-success">
+                    @operationResultText
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-warning">
+                    @operationResultText
+                </div>
+            }
+        }
+    
+    
+    
+</form>
+
+
+@code
+{
+    // User Login
+    string? usernameLogin;
+    string? passwordLogin;
+
+    // UI 
+    bool operationSuccessfull;
+    string operationResultText;
+
+    protected override void OnInitialized()
+    {
+        session.OnChange += StateHasChanged;
+    }
+
+    private void Login()
+    {
+        User? userAttemptedLogin = db.GetUserByUsername(usernameLogin);
+        if (userAttemptedLogin == null)
+        {
+            DialogueBox("No user found with that username!",false);
+            
+            return;
+        }
+
+        if (userAttemptedLogin.IsCorrectPassword(passwordLogin))
+        {
+            session.LoggedInUser = userAttemptedLogin;
+            DialogueBox("Successful login!",true);
+            
+                session.UserChanged();
+                StateHasChanged();
+
+        }
+        else
+        {
+            DialogueBox("Wrong password!",false);
+        }
+        
+    }
+    
+    private void CreateUser()
+    {
+        if (ValidateUsername(usernameLogin) & ValidatePassword(passwordLogin))
+        {
+            User user = new User(usernameLogin, passwordLogin);
+            db.SaveData(user);
+            DialogueBox("User Created!",true);
+        }
+   
+    }
+
+    private bool ValidateUsername(string? username)
+    {
+        if (username == null)
+        {
+            DialogueBox("Username cannot be empty!",false);
+            return false;
+        }
+        if (username.Length < 1)
+        {
+            DialogueBox("Username too short!",false);
+            
+            return false;
+        }
+
+        if (username.Length > 20)
+        {
+            DialogueBox("Username too long!",false);
+            
+            return false;
+        }
+
+        if (db.GetUserByUsername(username) != null)
+        {
+            DialogueBox("User already exists! Try logging in instead!",false);
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool ValidatePassword(string? password)
+    {
+        bool validPassword = true;
+        if (password == null)
+        {
+            DialogueBox("Password cannot be empty!",false);
+            return false;
+        }
+        if (password.Length < 5)
+        {
+            DialogueBox("Password too short!",false);
+            validPassword = false;
+        }
+
+        if (password.Length > 15)
+        {
+            DialogueBox("Password too long!",false);
+            validPassword = false;
+        }
+
+        return validPassword;
+    }
+
+    private void DialogueBox(string resultText, bool _operationSuccessfull)
+    {
+        operationResultText = resultText;
+        this.operationSuccessfull = _operationSuccessfull;
+    }
+}
